@@ -87,7 +87,9 @@ def simplex(restrictions, base, optimalVector):
     while(np.any(tableu.c < 0)):
         pivotColumn, pivotLine, ilimitada = tableu.findPivot()
         if (ilimitada):
-            
+            optimalValue = 'ilimitada'
+            solution = tableu.findX()
+            return optimalValue, solution, tableu.b
         tableu.canonizeTableu(pivotColumn, pivotLine)
         
     solution = tableu.findX()
@@ -107,9 +109,14 @@ for i in range(0, N):
     restrictionsInput.append(input().split())
 restrictionsInput = np.array(restrictionsInput, dtype = float)
 folgaVariables = np.eye(N, dtype = float)
+
 baseInput = np.array(restrictionsInput[:, -1])
+
 restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVariables), axis = 1)
+
 for i in range(0, 1):
     if(baseInput[i] < 0):
         baseInput *= -1
         restrictionsInput[i] *= -1
+
+optimalValue, solution, bVector = simplex(restrictionsInput, baseInput, optimalVectorInput)
