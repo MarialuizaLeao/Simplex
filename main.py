@@ -31,7 +31,7 @@ def findPivot(A, b, c):
 
     return pivotColum, pivotLine, ilimitada
 
-def canonizarTableu(A, b, c, pivotColum, pivotLine):
+def canonizeTableu(A, b, c, pivotColum, pivotLine):
     N = A.shape[0]
     M = A.shape[1]
 
@@ -50,3 +50,6 @@ def canonizarTableu(A, b, c, pivotColum, pivotLine):
         c -= operation
 
     return A, b, c
+
+def findX():
+    
