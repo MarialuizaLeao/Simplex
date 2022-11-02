@@ -51,5 +51,31 @@ def canonizeTableu(A, b, c, pivotColum, pivotLine):
 
     return A, b, c
 
-def findX():
-    
+def isPivot(column):
+    M = column.shape[i]
+    onlyOne = False
+    isPivot = False
+    columnPivot = 0
+    for i range(0, M):
+        if (column[i] != 0 or column[i] != 1):
+            return False, 0
+        else:
+            if(column[i] == 1):
+                if (!onlyOne):
+                    onlyOne = True
+                    columnPivot = i
+                else:
+                    return False, 0
+    isPivot = True
+    return isPivot, columnPivot
+
+def findX(A, c, b):
+    N = A.shape[0]
+    M = A.shape[1]
+    x = np.zeros(len(c) - N)
+    for i in range(0, len(c) - N): 
+        isAPovotColumn, pivotLine = isPivot(A[:, i])
+        if(c[i] == 0 and isAPivotColumn):
+            solution[i] = b[pivotLine]
+
+    return x
