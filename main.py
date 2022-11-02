@@ -30,4 +30,23 @@ def findPivot(A, b, c):
             break
 
     return pivotColum, pivotLine, ilimitada
-            
+
+def canonizarTableu(A, b, c, pivotColum, pivotLine):
+    N = A.shape[0]
+    M = A.shape[1]
+
+    if (A[pivotLine][pivotColum] != 1):
+        A[pivotLine, :] /= A[pivotLine][pivotColum]
+        b[pivotLine] /= A[pivotLine][pivotColum]
+    
+    for i in range(0, N):  # Para cada linha
+        if (i != pivotLine and A[i][pivotColum] != 0):
+            operation = A[i][pivotColum] * A[pivotLine, :]
+            A[i, :] -= operation
+            b[i] -= (b[pivotLine] * A[i][pivotColum])
+
+    if(c[pivotColum] != 0):
+        operation = A[pivotLine, :] * c[pivotColum]
+        c -= operation
+
+    return A, b, c
