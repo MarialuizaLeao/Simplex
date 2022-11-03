@@ -1,22 +1,22 @@
 import numpy as np
 
-    def isPivot(column):
-        M = column.shape[i]
-        onlyOne = False
-        isPivot = False
-        columnPivot = 0
-        for i range(0, M):
-            if (column[i] != 0 or column[i] != 1):
-                return False, 0
-            else:
-                if(column[i] == 1):
-                    if (!onlyOne):
-                        onlyOne = True
-                        columnPivot = i
-                    else:
-                        return False, 0
-        isPivot = True
-        return isPivot, columnPivot
+def isPivot(column):
+    M = column.shape[i]
+    onlyOne = False
+    isPivot = False
+    columnPivot = 0
+    for i in range(0, M):
+        if (column[i] != 0 or column[i] != 1):
+            return False, 0
+        else:
+            if(column[i] == 1):
+                if (not onlyOne):
+                    onlyOne = True
+                    columnPivot = i
+                else:
+                    return False, 0
+    isPivot = True
+    return isPivot, columnPivot
 
 class Tableu:
 
@@ -39,7 +39,7 @@ class Tableu:
                     break
                 minValue = 1000
                 for j in range(0, N):  # Passando por cada linha
-                    if(selfA[j][i] > 0):
+                    if(self.A[j][i] > 0):
                         valueLine = self.b[j] / self.A[j][i]
                     if(valueLine < minValue):
                         minValue = valueLine
@@ -71,7 +71,7 @@ class Tableu:
         M = self.A.shape[1]
         x = np.zeros(len(self.c) - N)
         for i in range(0, len(self.c) - N): 
-            isAPovotColumn, pivotLine = isPivot(self.A[:, i])
+            isAPivotColumn, pivotLine = isPivot(self.A[:, i])
             if(self.c[i] == 0 and isAPivotColumn):
                 solution[i] = self.b[pivotLine]
 
