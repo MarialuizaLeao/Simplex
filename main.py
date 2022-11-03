@@ -39,9 +39,9 @@ class Tableu:
                     break
                 minValue = 1000
                 for j in range(0, N):  # Passando por cada linha
-                    if(self.A[j][i] > 0):
+                    if(self.A[j][i] != 0):
                         valueLine = self.b[j] / self.A[j][i]
-                    if(valueLine < minValue):
+                    if(valueLine < minValue and valueLine >= 0 and self.A[j][i]):
                         minValue = valueLine
                 pivotColumn = i
                 pivotLine = j
@@ -99,10 +99,12 @@ def simplex(restrictions, base, optimalVector):
 
 
 N, M = input().split()
+N = int(N)
+M = int(M)
 
 cInput = input().split()
 optimalVectorInput = np.array(cInput, dtype = float)
-optimalVectorInput = np.concatenate((optimalVectorInput, np.zeros(N + 1)), axis = 1)
+optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N + 1)))
 
 restrictionsInput = []
 for i in range(0, N):
