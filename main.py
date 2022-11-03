@@ -1,22 +1,27 @@
 import numpy as np
 
 def isPivot(column):
-    M = column.shape[i]
+    M = column.shape[0]
     onlyOne = False
     isPivot = False
     columnPivot = 0
     for i in range(0, M):
-        if (column[i] != 0 or column[i] != 1):
-            return False, 0
-        else:
-            if(column[i] == 1):
+        if (column[i] == 0 or column[i] == 1.0):
+            if(column[i] == 1.0):
                 if (not onlyOne):
                     onlyOne = True
                     columnPivot = i
                 else:
                     return False, 0
+        else:
+            return False, 0
     isPivot = True
     return isPivot, columnPivot
+
+def zero(value):
+    if(abs(value) < 1e-4):
+        value = 0.0
+    return value
 
 class Tableu:
 
@@ -41,10 +46,10 @@ class Tableu:
                 for j in range(0, N):  # Passando por cada linha
                     if(self.A[j][i] != 0):
                         valueLine = self.b[j] / self.A[j][i]
-                    if(valueLine < minValue and valueLine >= 0 and self.A[j][i]):
-                        minValue = valueLine
+                        if(valueLine < minValue and valueLine >= 0 and self.A[j][i] != 0):
+                            minValue = valueLine
+                            pivotLine = j
                 pivotColumn = i
-                pivotLine = j
                 break
 
         return pivotColumn, pivotLine, ilimitada
@@ -63,17 +68,22 @@ class Tableu:
                 self.b[i] -= (self.b[pivotLine] * self.A[i][pivotColum])
 
         if(self.c[pivotColum] != 0):
-            operation = self.A[pivotLine, :] * self.c[pivotColum]
+            aux = np.concatenate((self.A[pivotLine, :], [self.b[pivotLine]]))
+            operation = aux * self.c[pivotColum]
             self.c -= operation
+            
+        vfunc = np.vectorize(zero)
+        self.A = vfunc(self.A)
+        self.c = vfunc(self.c)
 
     def findX(self):
         N = self.A.shape[0]
         M = self.A.shape[1]
-        x = np.zeros(len(self.c) - N)
-        for i in range(0, len(self.c) - N): 
+        x = np.zeros(len(self.b))
+        for i in range(0, len(self.b)): 
             isAPivotColumn, pivotLine = isPivot(self.A[:, i])
             if(self.c[i] == 0 and isAPivotColumn):
-                solution[i] = self.b[pivotLine]
+                x[i] = self.b[pivotLine]
 
         return x
 
@@ -116,9 +126,10 @@ baseInput = np.array(restrictionsInput[:, -1])
 
 restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVariables), axis = 1)
 
-for i in range(0, 1):
+for i in range(0, N):
     if(baseInput[i] < 0):
         baseInput *= -1
         restrictionsInput[i] *= -1
 
 optimalValue, solution, bVector = simplex(restrictionsInput, baseInput, optimalVectorInput)
+print(optimalValue, solution, bVector)
