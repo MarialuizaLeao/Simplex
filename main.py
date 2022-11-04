@@ -46,7 +46,7 @@ class Tableu:
                 for j in range(0, N):  # Passando por cada linha
                     if(self.A[j][i] != 0):
                         valueLine = self.b[j] / self.A[j][i]
-                        if(valueLine < minValue and valueLine >= 0 and self.A[j][i] != 0):
+                        if(valueLine < minValue and valueLine >= 0 and self.A[j][i] > 0):
                             minValue = valueLine
                             pivotLine = j
                 pivotColumn = i
@@ -94,18 +94,46 @@ def simplex(restrictions, base, optimalVector):
     tableu.c = optimalVector * -1
     N = tableu.A.shape[0]
     M = tableu.A.shape[1]
-    while(np.any(tableu.c < 0)):
+    while(np.any(tableu.c[:-1] < 0)):
         pivotColumn, pivotLine, ilimitada = tableu.findPivot()
         if (ilimitada):
             optimalValue = 'ilimitada'
             solution = tableu.findX()
             return optimalValue, solution, tableu.b
         tableu.canonizeTableu(pivotColumn, pivotLine)
-        
+    #while(np.any(tableu.b < 0)):
+    #    pivotLine, pivotColumn = dualSimplex(tableu.A, tableu.b, tableu.c)
+    #    if(pivotLine != -1 and pivotColumn != -1):
+    #        tableu.canonizeTableu(pivotColumn, pivotLine)   
     solution = tableu.findX()
     optimalValue = tableu.c[-1]
 
     return optimalValue, solution, tableu.b
+
+def dualSimplex(restrictions, base, optimalVector):
+    tableu = Tableu()
+    tableu.A = restrictions
+    tableu.b = base
+    tableu.c = optimalVector * -1
+    pivotColumn = -1
+    pivotLine = -1
+    N = tableu.A.shape[0]
+    M = tableu.A.shape[1]
+    for i in range(0, N):
+        if (tableu.b[i] < 0):
+            pivotLine = i
+            break
+    if (pivotLine == -1):
+        return pivotLine, pivotColumn
+    min = 1000
+    for j in range(0, M):
+        if(tableu.A[pivotLine][j] < 0):
+            value = tableu.c[j] / tableu.A[pivotLine][j] * -1
+            if (value < min):
+                min = value
+                pivotColumn = j
+    
+    return pivotLine, pivotColumn
 
 
 N, M = input().split()
@@ -125,11 +153,6 @@ folgaVariables = np.eye(N, dtype = float)
 baseInput = np.array(restrictionsInput[:, -1])
 
 restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVariables), axis = 1)
-
-for i in range(0, N):
-    if(baseInput[i] < 0):
-        baseInput *= -1
-        restrictionsInput[i] *= -1
 
 optimalValue, solution, bVector = simplex(restrictionsInput, baseInput, optimalVectorInput)
 print(optimalValue, solution, bVector)
