@@ -1,23 +1,5 @@
 import numpy as np
 
-def isPivot(column):
-    M = column.shape[0]
-    onlyOne = False
-    isPivot = False
-    columnPivot = 0
-    for i in range(0, M):
-        if (column[i] == 0 or column[i] == 1.0):
-            if(column[i] == 1.0):
-                if (not onlyOne):
-                    onlyOne = True
-                    columnPivot = i
-                else:
-                    return False, 0
-        else:
-            return False, 0
-    isPivot = True
-    return isPivot, columnPivot
-
 def zero(value):
     if(abs(value) < 1e-4):
         value = 0.0
@@ -29,112 +11,101 @@ class Tableu:
         self.c = []
         self.A = []
         self.b = []
+        self.optimalValue = 0
+        self.baseColumns = []
+        self.dimantions = (0,0)
+        self.plClassification = ''
 
     # Queremos saber a coluna que vai entrar na base e que linha dessa coluna vai ser pivoteada, ademais, checamos para verificar a pl não é ilimitada
     def findPivot(self):
-        N = self.A.shape[0]
-        M = self.A.shape[1]
-        pivotColumn = -1000
-        pivotLine = -1000
-        ilimitada = False
-        for i in range(0, M):  # Passando por cada coluna
-            if(self.c[i] < 0):  # Esse valor pode ser pivoteado
-                if(np.all(self.A[:, i] <= 0)):  # Se todas as linhas da coluna i são negativos ou iguais à zero
+        for i in range(0, self.dimantions[1]):  # Checking every column
+            ilimitada = False
+            pivotColumn = i
+            pivotLine = 0
+            if(self.c[i] < 0):  # Is the value can be a pivot candidade
+                if(np.all(self.A[:, i] <= 0)):  # Check to se if the variable value are all negative or igual to 0
                     ilimitada = True
                     break
-                minValue = 1000
-                for j in range(0, N):  # Passando por cada linha
-                    if(self.A[j][i] != 0):
+                minValue = 100  # Max value for the restrictions values
+                for j in range(0, self.dimantions[0]):  # Checking every line so we can find the minimum value that wil be the new pivot
+                    if(self.A[j][i] != 0 and self.A[j][i] > 0):
                         valueLine = self.b[j] / self.A[j][i]
                         if(valueLine < minValue and valueLine >= 0 and self.A[j][i] > 0):
                             minValue = valueLine
                             pivotLine = j
-                pivotColumn = i
                 break
 
         return pivotColumn, pivotLine, ilimitada
 
-    def canonizeTableu(self, pivotColum, pivotLine):
-        N = self.A.shape[0]
+    def canonizeTableu(self):
+        for i in range(0, self.dimantions[0]):  # For every base variable
+            
+            if (self.A[i][self.baseColumns[i]] != 0):  # If the pivot for this variable is diferent than 0
+                value = self.A[i][self.baseColumns[i]].copy()
+                self.A[i, :] /= value  # Divide the entire line by the pivot value, so now pivot = 1
+                self.b[i] /= value
+            
+            for j in range(0, self.dimantions[0]):  # For each line
+                if (i != j):  # If it's not the base variable line
+                    value = self.A[j][self.baseColumns[i]].copy()
+                    self.A[j, :] -= value * self.A[i, :]  # So we have the rest of the pivot colums = 0
+                    self.b[j] -= (value * self.b[i])
 
-        if (self.A[pivotLine][pivotColum] != 1):
-            self.A[pivotLine, :] /= self.A[pivotLine][pivotColum]
-            self.b[pivotLine] /= self.A[pivotLine][pivotColum]
-        
-        for i in range(0, N):  # Para cada linha
-            if (i != pivotLine and self.A[i][pivotColum] != 0):
-                operation = self.A[i][pivotColum] * self.A[pivotLine, :]
-                self.A[i, :] -= operation
-                self.b[i] -= (self.b[pivotLine] * self.A[i][pivotColum])
-
-        if(self.c[pivotColum] != 0):
-            aux = np.concatenate((self.A[pivotLine, :], [self.b[pivotLine]]))
-            operation = aux * self.c[pivotColum]
-            self.c -= operation
+            value = self.c[self.baseColumns[i]].copy()
+            self.c -= self.A[i, :] * value  # So now the variable is a real base (respective c = 0)
+            self.optimalValue -= self.b[i] * value
             
         vfunc = np.vectorize(zero)
         self.A = vfunc(self.A)
         self.c = vfunc(self.c)
+        self.b = vfunc(self.b)
 
     def findX(self):
-        N = self.A.shape[0]
-        M = self.A.shape[1]
         x = np.zeros(len(self.b))
         for i in range(0, len(self.b)): 
-            isAPivotColumn, pivotLine = isPivot(self.A[:, i])
-            if(self.c[i] == 0 and isAPivotColumn):
-                x[i] = self.b[pivotLine]
+            if(self.baseColumns[i] < self.dimantions[1] - self.dimantions[0]):
+                x[i] = self.b[i]
 
         return x
 
-def simplex(restrictions, base, optimalVector):
+def simplex(restrictions, bVector, optimalVector, baseVariables):
     tableu = Tableu()
-    tableu.A = restrictions
-    tableu.b = base
+    tableu.A = restrictions.copy()
+    tableu.b = bVector.copy()
     tableu.c = optimalVector * -1
-    N = tableu.A.shape[0]
-    M = tableu.A.shape[1]
-    while(np.any(tableu.c[:-1] < 0)):
+    tableu.baseColumns = baseVariables.copy()
+    tableu.dimantions = (restrictions.shape[0], restrictions.shape[1])
+    tableu.optimalValue = 0
+    tableu.canonizeTableu()
+    while(np.any(tableu.c < 0)):
         pivotColumn, pivotLine, ilimitada = tableu.findPivot()
         if (ilimitada):
-            optimalValue = 'ilimitada'
+            tableu.plClassification = 'ilimitada'
             solution = tableu.findX()
-            return optimalValue, solution, tableu.b
-        tableu.canonizeTableu(pivotColumn, pivotLine)
-    #while(np.any(tableu.b < 0)):
-    #    pivotLine, pivotColumn = dualSimplex(tableu.A, tableu.b, tableu.c)
-    #    if(pivotLine != -1 and pivotColumn != -1):
-    #        tableu.canonizeTableu(pivotColumn, pivotLine)   
+            return tableu.optimalValue, solution, tableu.plClassification, tableu.baseColumns
+        tableu.baseColumns[pivotLine] = pivotColumn
+        tableu.canonizeTableu()
+  
     solution = tableu.findX()
-    optimalValue = tableu.c[-1]
+    if(tableu.optimalValue < 0):
+        tableu.plClassification = 'inviavel'
+    else:
+        tableu.plClassification = 'otima'
+    return tableu.optimalValue, solution, tableu.plClassification, tableu.baseColumns
 
-    return optimalValue, solution, tableu.b
-
-def dualSimplex(restrictions, base, optimalVector):
-    tableu = Tableu()
-    tableu.A = restrictions
-    tableu.b = base
-    tableu.c = optimalVector * -1
-    pivotColumn = -1
-    pivotLine = -1
-    N = tableu.A.shape[0]
-    M = tableu.A.shape[1]
-    for i in range(0, N):
-        if (tableu.b[i] < 0):
-            pivotLine = i
-            break
-    if (pivotLine == -1):
-        return pivotLine, pivotColumn
-    min = 1000
-    for j in range(0, M):
-        if(tableu.A[pivotLine][j] < 0):
-            value = tableu.c[j] / tableu.A[pivotLine][j] * -1
-            if (value < min):
-                min = value
-                pivotColumn = j
+def auxiliarPl(originalA, originalB):
+    auxiliarA = originalA.copy()
+    auxiliarB = originalB.copy()
+    if(np.any(originalB < 0)):
+        for i in range(0, originalA.shape[0]):
+            if(originalB[i] < 0):
+                auxiliarB[i] *= -1
+                auxiliarA[i][:] *= -1
+    auxiliarA = np.concatenate((auxiliarA, np.eye(originalA.shape[0], dtype = float)), axis = 1)
+    auxiliarC = np.concatenate((np.zeros(originalA.shape[1]), np.full(originalA.shape[0], -1)))
+    auxiliarBaseVariables = list(range(originalA.shape[1], originalA.shape[0] + originalA.shape[1]))
     
-    return pivotLine, pivotColumn
-
+    return auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables
 
 N, M = input().split()
 N = int(N)
@@ -142,7 +113,7 @@ M = int(M)
 
 cInput = input().split()
 optimalVectorInput = np.array(cInput, dtype = float)
-optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N + 1)))
+optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N)))
 
 restrictionsInput = []
 for i in range(0, N):
@@ -154,5 +125,30 @@ baseInput = np.array(restrictionsInput[:, -1])
 
 restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVariables), axis = 1)
 
-optimalValue, solution, bVector = simplex(restrictionsInput, baseInput, optimalVectorInput)
-print(optimalValue, solution, bVector)
+baseVariablesInput = list(range(M, M + N))
+
+auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables = auxiliarPl(restrictionsInput, baseInput)
+auxiliarOptimalValue, auxiliarSolution, auxiliarPlClassification, auxiliarFinalBaseVariables = simplex(auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables)
+
+if(auxiliarOptimalValue < 0):
+    print(auxiliarPlClassification)
+else:
+    for i in range(len(auxiliarFinalBaseVariables)):
+        if(auxiliarFinalBaseVariables[i] > M + N):
+            auxiliarFinalBaseVariables[i] = auxiliarFinalBaseVariables[i] - (M + N)
+    baseVariablesInput = auxiliarFinalBaseVariables
+    if(np.any(baseInput < 0)):
+        for i in range(0, baseInput.shape[0]):
+            if(baseInput[i] < 0):
+                baseInput[i] *= -1
+                restrictionsInput[i][:] *= -1
+    FinalOptimalValue, FinalSolution, FinalPlClassification, FinalFinalBaseVariables = simplex(restrictionsInput, baseInput, optimalVectorInput, baseVariablesInput)
+    vfunc = np.vectorize(zero)
+    solution = vfunc(FinalSolution)
+    optimalValue = vfunc(FinalOptimalValue)
+    print(FinalPlClassification)
+    if(FinalPlClassification == 'ilimitada'):
+        print(FinalSolution)
+    if(FinalPlClassification == 'otima'):
+        print(FinalOptimalValue) 
+        print(FinalSolution)
