@@ -5,7 +5,7 @@ def zero(value):
         value = 0.0
     return value
 
-class Tableu:
+class Tableau:
 
     def __init__(self):
         self.c = []
@@ -40,7 +40,7 @@ class Tableu:
 
         return pivotColumn, pivotLine, ilimitada
 
-    def canonizeTableu(self):
+    def canonizeTableau(self):
         for i in range(0, self.dimensions[0]):  # For every base variable
             
             if (self.A[i][self.baseColumns[i]] != 0):  # If the pivot for this variable is diferent than 0
@@ -52,13 +52,12 @@ class Tableu:
                 if (i != j):  # If it's not the base variable line
                     value = self.A[j][self.baseColumns[i]].copy()
                     self.A[j, :] -= value * self.A[i, :]  # So we have the rest of the pivot colums = 0
-                    self.b[j] -= (value * self.b[i])
+                    self.b[j] -= value * self.b[i]
 
             value = self.c[self.baseColumns[i]]
-            self.c -= self.A[i, :] * value  # So now the variable is a real base (respective c = 0)
-            self.optimalValue -= self.b[i] * value
-
-            
+            self.c -= value * self.A[i, :]  # So now the variable is a real base (respective c = 0)
+            self.optimalValue -= value * self.b[i]
+    
         vfunc = np.vectorize(zero)
         self.A = vfunc(self.A)
         self.c = vfunc(self.c)
@@ -74,32 +73,33 @@ class Tableu:
         return x
 
 def simplex(restrictions, bVector, optimalVector, baseVariables):
-    tableu = Tableu()
-    tableu.A = restrictions.copy()
-    tableu.b = bVector.copy()
-    tableu.c = optimalVector * -1
-    tableu.baseColumns = baseVariables.copy()
-    tableu.dimensions = (restrictions.shape[0], restrictions.shape[1])
-    tableu.optimalValue = 0
-    tableu.canonizeTableu()
-    while(np.any(tableu.c < 0)):
-        pivotColumn, pivotLine, ilimitada = tableu.findPivot()
+    tableau = Tableau()
+    tableau.A = restrictions.copy()
+    tableau.b = bVector.copy()
+    tableau.c = optimalVector * -1
+    tableau.baseColumns = baseVariables.copy()
+    tableau.dimensions = (restrictions.shape[0], restrictions.shape[1])
+    tableau.optimalValue = 0
+
+    tableau.canonizeTableau()
+    while(np.any(tableau.c < 0)):
+        pivotColumn, pivotLine, ilimitada = tableau.findPivot()
         if (ilimitada):
-            tableu.plClassification = 'ilimitada'
-            solution = tableu.findX()
-            return tableu.optimalValue, solution, tableu.plClassification, tableu.baseColumns
-        tableu.baseColumns[pivotLine] = pivotColumn
-        tableu.canonizeTableu()
+            tableau.plClassification = 'ilimitada'
+            solution = tableau.findX()
+            return tableau.optimalValue, solution, tableau.plClassification, tableau.baseColumns
+        tableau.baseColumns[pivotLine] = pivotColumn
+        tableau.canonizeTableau()
   
-    solution = tableu.findX()
-    if(tableu.optimalValue < 0):
-        tableu.plClassification = 'inviavel'
+    solution = tableau.findX()
+    if(tableau.optimalValue < 0):
+        tableau.plClassification = 'inviavel'
     else:
-        tableu.plClassification = 'otima'
+        tableau.plClassification = 'otima'
         
-    tableu.baseColumns.sort()
-    tableu.baseColumns =tableu.baseColumns[:tableu.dimensions[0]]
-    return tableu.optimalValue, solution, tableu.plClassification, tableu.baseColumns
+    tableau.baseColumns.sort()
+    tableau.baseColumns =tableau.baseColumns[:tableau.dimensions[0]]
+    return tableau.optimalValue, solution, tableau.plClassification, tableau.baseColumns
 
 def auxiliarPl(originalA, originalB):
     auxiliarA = originalA.copy()
@@ -109,6 +109,11 @@ def auxiliarPl(originalA, originalB):
     auxiliarBaseVariables = list(range(originalA.shape[1], originalA.shape[0] + originalA.shape[1]))
     
     return auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables
+
+def printArray(array):
+    for i in range(len(array)):
+        print('{:.7f}'.format(array[i]), end=' ')
+    print()
 
 N, M = input().split()
 N = int(N)
@@ -130,29 +135,36 @@ restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVa
 
 baseVariablesInput = list(range(M, M + N))
 
+bNegativo = False
+
 if(np.any(baseInput < 0)):
-        for i in range(0, N):
-            if(baseInput[i] < 0):
-                baseInput[i] *= -1
-                restrictionsInput[i][:] *= -1
+    bNegativo = True
+    for i in range(0, N):
+        if(baseInput[i] < 0):
+            baseInput[i] *= -1
+            restrictionsInput[i][:] *= -1
 
 auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables = auxiliarPl(restrictionsInput, baseInput)
+
 auxiliarOptimalValue, auxiliarSolution, auxiliarPlClassification, auxiliarFinalBaseVariables = simplex(auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables)
 
 if(auxiliarOptimalValue < 0):
     print(auxiliarPlClassification)
 else:
-    for i in range(len(auxiliarFinalBaseVariables)):
-        if(auxiliarFinalBaseVariables[i] > M + N):
-            auxiliarFinalBaseVariables[i] = auxiliarFinalBaseVariables[i] - (M + N)
-    baseVariablesInput = auxiliarFinalBaseVariables
+    if(bNegativo):
+        for i in range(len(auxiliarFinalBaseVariables)):
+            if(auxiliarFinalBaseVariables[i] > M + N):
+                auxiliarFinalBaseVariables[i] = auxiliarFinalBaseVariables[i] - (M + N)
+        baseVariablesInput = auxiliarFinalBaseVariables
+    else:
+        baseVariablesInput = list(range(M, M + N))
     FinalOptimalValue, FinalSolution, FinalPlClassification, FinalFinalBaseVariables = simplex(restrictionsInput, baseInput, optimalVectorInput, baseVariablesInput)
     vfunc = np.vectorize(zero)
     solution = vfunc(FinalSolution)
     optimalValue = vfunc(FinalOptimalValue)
     print(FinalPlClassification)
     if(FinalPlClassification == 'ilimitada'):
-        print(FinalSolution)
+        printArray(FinalSolution)
     if(FinalPlClassification == 'otima'):
-        print(FinalOptimalValue) 
-        print(FinalSolution)
+        print('{:.7f}'.format(FinalOptimalValue))
+        printArray(FinalSolution)
