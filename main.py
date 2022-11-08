@@ -114,9 +114,8 @@ N, M = input().split()
 N = int(N)  # Number of restrictions
 M = int(M)  # Number of variables
 
-cInput = input().split()  
+cInput = input().split()
 optimalVectorInput = np.array(cInput, dtype = float)
-optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N)))  # Optimal value for compensating variables
 
 restrictionsInput = []
 for i in range(0, N):
@@ -126,9 +125,13 @@ compensatingVariables = np.eye(N, dtype = float)
 
 baseInput = np.array(restrictionsInput[:, -1])  # b vector
 
-restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), compensatingVariables), axis = 1)
+if(np.array_equal(restrictionsInput[:, (N - 1):-1], compensatingVariables)):  # If the original problem already has a base
+    baseVariablesInput = list(range(M - N, M))  # The bases are the compensating variables
+else: 
+    baseVariablesInput = list(range(M, M + N))  # The bases are the compensating variables
 
-baseVariablesInput = list(range(M, M + N))  # The bases are the compensating variables
+restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), compensatingVariables), axis = 1)
+optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N)))  # Optimal value for compensating variables
 
 bNegativo = False
 
