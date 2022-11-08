@@ -20,85 +20,79 @@ class Tableau:
     def findPivot(self):
         for i in range(0, self.dimensions[1]):  # Checking every column
             ilimitada = False
-            pivotColumn = i
-            pivotLine = 0
-            if(self.c[i] < 0):  # Is the value can be a pivot candidade
+            pivotColumn = i  # What column the pivot is
+            pivotLine = 0  # The line of the new pivot
+            if(self.c[i] < 0):  # If the value can be a pivot candidate
                 aux = self.c.copy()
                 aux = np.delete(aux, [i])
                 if(np.all(self.A[:, i] <= 0) and (np.all(aux >= 0) or i < self.dimensions[1] - self.dimensions[0])):  # Check to se if the variable value are all negative or igual to 0
-                    ilimitada = True
+                    ilimitada = True  # The problem is unbounded so we dont continue trying to find a new pivot
                     break
                 if(self.c[i] < 0):
                     minValue = 100  # Max value for the restrictions values
                     for j in range(0, self.dimensions[0]):  # Checking every line so we can find the minimum value that wil be the new pivot
                         if(self.A[j][i] != 0):
                             valueLine = self.b[j] / self.A[j][i]
-                            if(valueLine < minValue and valueLine >= 0 and self.A[j][i] > 0):
-                                minValue = valueLine
-                                pivotLine = j
-                    break
+                            if(valueLine < minValue and valueLine >= 0 and self.A[j][i] > 0):  # If we find a new lower value we have a new pivot
+                                minValue = valueLine  # Update the minimum value
+                                pivotLine = j  # Update the pivot line variable
+                    break  # Found the new pivot so we can return
 
         return pivotColumn, pivotLine, ilimitada
 
+    # Put all the bases in canonical form
     def canonizeTableau(self):
         for i in range(0, self.dimensions[0]):  # For every base variable
-            
             if (self.A[i][self.baseColumns[i]] != 0):  # If the pivot for this variable is diferent than 0
                 value = self.A[i][self.baseColumns[i]].copy()
                 self.A[i, :] /= value  # Divide the entire line by the pivot value, so now pivot = 1
-                self.b[i] /= value
-            
+                self.b[i] /= value    
             for j in range(0, self.dimensions[0]):  # For each line
                 if (i != j):  # If it's not the base variable line
                     value = self.A[j][self.baseColumns[i]].copy()
                     self.A[j, :] -= value * self.A[i, :]  # So we have the rest of the pivot colums = 0
                     self.b[j] -= value * self.b[i]
-
             value = self.c[self.baseColumns[i]]
             self.c -= value * self.A[i, :]  # So now the variable is a real base (respective c = 0)
             self.optimalValue -= value * self.b[i]
-    
-        vfunc = np.vectorize(zero)
+        vfunc = np.vectorize(zero)  # Round all the zeros according to the precision 
         self.A = vfunc(self.A)
         self.c = vfunc(self.c)
         self.b = vfunc(self.b)
         self.optimalValue = vfunc(self.optimalValue)
 
+    # Find the solution in the tableau
     def findX(self):
-        x = np.zeros(self.dimensions[1] - self.dimensions[0])
+        x = np.zeros(self.dimensions[1] - self.dimensions[0])  # The size occording to the original number of variables in the problem
         for i in range(0, len(self.b)): 
-            if(self.baseColumns[i] < self.dimensions[1] - self.dimensions[0]):
+            if(self.baseColumns[i] < self.dimensions[1] - self.dimensions[0]):  # If the base is a original variable
                 x[self.baseColumns[i]] = self.b[i]
 
         return x
 
 def simplex(restrictions, bVector, optimalVector, baseVariables):
-    tableau = Tableau()
+    tableau = Tableau()  # Initiate the tableu with the receving values
     tableau.A = restrictions.copy()
     tableau.b = bVector.copy()
     tableau.c = optimalVector * -1
     tableau.baseColumns = baseVariables.copy()
     tableau.dimensions = (restrictions.shape[0], restrictions.shape[1])
     tableau.optimalValue = 0
-
-    tableau.canonizeTableau()
-    while(np.any(tableau.c < 0)):
-        pivotColumn, pivotLine, ilimitada = tableau.findPivot()
-        if (ilimitada):
+    tableau.canonizeTableau()  # Make sure that all the bases columns really have pivots
+    while(np.any(tableau.c < 0)):  # While c still have negative values
+        pivotColumn, pivotLine, ilimitada = tableau.findPivot()  # Find the variable that will enter the base
+        if (ilimitada):  # If we find that the problem is unbounded
             tableau.plClassification = 'ilimitada'
-            solution = tableau.findX()
+            solution = tableau.findX()  # Find the solution that we have in the moment
             return tableau.optimalValue, solution, tableau.plClassification, tableau.baseColumns
-        tableau.baseColumns[pivotLine] = pivotColumn
-        tableau.canonizeTableau()
-  
-    solution = tableau.findX()
-    if(tableau.optimalValue < 0):
+        tableau.baseColumns[pivotLine] = pivotColumn  # Add the new pivot column found to the bases list
+        tableau.canonizeTableau()  # Put the tableau in canonical form for the new base value
+    solution = tableau.findX()  # Find the tableau's solution
+    if(tableau.optimalValue < 0):  # If the optimal value is negative, the problem is unsolvable
         tableau.plClassification = 'inviavel'
     else:
         tableau.plClassification = 'otima'
         
-    tableau.baseColumns.sort()
-    tableau.baseColumns =tableau.baseColumns[:tableau.dimensions[0]]
     return tableau.optimalValue, solution, tableau.plClassification, tableau.baseColumns
 
 def auxiliarPl(originalA, originalB):
@@ -152,6 +146,8 @@ if(auxiliarOptimalValue < 0):
     print(auxiliarPlClassification)
 else:
     if(bNegativo):
+        auxiliarFinalBaseVariables.sort()
+        auxiliarFinalBaseVariables = auxiliarFinalBaseVariables[:N + M]
         for i in range(len(auxiliarFinalBaseVariables)):
             if(auxiliarFinalBaseVariables[i] > M + N):
                 auxiliarFinalBaseVariables[i] = auxiliarFinalBaseVariables[i] - (M + N)
@@ -168,3 +164,4 @@ else:
     if(FinalPlClassification == 'otima'):
         print('{:.7f}'.format(FinalOptimalValue))
         printArray(FinalSolution)
+        
