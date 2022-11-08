@@ -95,12 +95,13 @@ def simplex(restrictions, bVector, optimalVector, baseVariables):
         
     return tableau.optimalValue, solution, tableau.plClassification, tableau.baseColumns
 
+# Return the auxiliar pl
 def auxiliarPl(originalA, originalB):
     auxiliarA = originalA.copy()
     auxiliarB = originalB.copy()
-    auxiliarA = np.concatenate((auxiliarA, np.eye(originalA.shape[0], dtype = float)), axis = 1)
-    auxiliarC = np.concatenate((np.zeros(originalA.shape[1]), np.full(originalA.shape[0], -1)))
-    auxiliarBaseVariables = list(range(originalA.shape[1], originalA.shape[0] + originalA.shape[1]))
+    auxiliarA = np.concatenate((auxiliarA, np.eye(originalA.shape[0], dtype = float)), axis = 1)  # Add the matrix
+    auxiliarC = np.concatenate((np.zeros(originalA.shape[1]), np.full(originalA.shape[0], -1)))  # Put all the original's variables c's as 0 and the auxiliar as -1
+    auxiliarBaseVariables = list(range(originalA.shape[1], originalA.shape[0] + originalA.shape[1]))  # New base as the auxiliar matrix columns
     
     return auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables
 
@@ -110,58 +111,56 @@ def printArray(array):
     print()
 
 N, M = input().split()
-N = int(N)
-M = int(M)
+N = int(N)  # Number of restrictions
+M = int(M)  # Number of variables
 
-cInput = input().split()
+cInput = input().split()  
 optimalVectorInput = np.array(cInput, dtype = float)
-optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N)))
+optimalVectorInput = np.concatenate((np.array(cInput, dtype = float), np.zeros(N)))  # Optimal value for compensating variables
 
 restrictionsInput = []
 for i in range(0, N):
     restrictionsInput.append(input().split())
 restrictionsInput = np.array(restrictionsInput, dtype = float)
-folgaVariables = np.eye(N, dtype = float)
+compensatingVariables = np.eye(N, dtype = float)
 
-baseInput = np.array(restrictionsInput[:, -1])
+baseInput = np.array(restrictionsInput[:, -1])  # b vector
 
-restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), folgaVariables), axis = 1)
+restrictionsInput = np.concatenate((np.array(restrictionsInput[:, :-1]), compensatingVariables), axis = 1)
 
-baseVariablesInput = list(range(M, M + N))
+baseVariablesInput = list(range(M, M + N))  # The bases are the compensating variables
 
 bNegativo = False
 
-if(np.any(baseInput < 0)):
-    bNegativo = True
+if(np.any(baseInput < 0)):  # Check to see if any b value is negative
+    bNegativo = True  # If a value is negative we multiply the entire line by -1
     for i in range(0, N):
         if(baseInput[i] < 0):
             baseInput[i] *= -1
             restrictionsInput[i][:] *= -1
 
-auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables = auxiliarPl(restrictionsInput, baseInput)
+auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables = auxiliarPl(restrictionsInput, baseInput)  # Create the auliar matrix for the problem
 
-auxiliarOptimalValue, auxiliarSolution, auxiliarPlClassification, auxiliarFinalBaseVariables = simplex(auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables)
+auxiliarOptimalValue, auxiliarSolution, auxiliarPlClassification, auxiliarFinalBaseVariables = simplex(auxiliarA, auxiliarB, auxiliarC, auxiliarBaseVariables)  # Solve the auxiliar problem
 
-if(auxiliarOptimalValue < 0):
+if(auxiliarOptimalValue < 0):  # If auxiliar's optimal value is negative, then the problem is unsolvable
     print(auxiliarPlClassification)
 else:
-    if(bNegativo):
+    if(bNegativo):  # If the original problem had negative b values, we'll use the base variables found by the auxiliar matrix
         auxiliarFinalBaseVariables.sort()
         auxiliarFinalBaseVariables = auxiliarFinalBaseVariables[:N + M]
         for i in range(len(auxiliarFinalBaseVariables)):
             if(auxiliarFinalBaseVariables[i] > M + N):
                 auxiliarFinalBaseVariables[i] = auxiliarFinalBaseVariables[i] - (M + N)
         baseVariablesInput = auxiliarFinalBaseVariables
-    else:
-        baseVariablesInput = list(range(M, M + N))
-    FinalOptimalValue, FinalSolution, FinalPlClassification, FinalFinalBaseVariables = simplex(restrictionsInput, baseInput, optimalVectorInput, baseVariablesInput)
+    FinalOptimalValue, FinalSolution, FinalPlClassification, FinalFinalBaseVariables = simplex(restrictionsInput, baseInput, optimalVectorInput, baseVariablesInput)  # Solve the original problem
     vfunc = np.vectorize(zero)
     solution = vfunc(FinalSolution)
     optimalValue = vfunc(FinalOptimalValue)
     print(FinalPlClassification)
-    if(FinalPlClassification == 'ilimitada'):
+    if(FinalPlClassification == 'ilimitada'):  # If unbounded, print only the result
         printArray(FinalSolution)
-    if(FinalPlClassification == 'otima'):
+    if(FinalPlClassification == 'otima'):  # In this case, print optimal value and result
         print('{:.7f}'.format(FinalOptimalValue))
         printArray(FinalSolution)
         
