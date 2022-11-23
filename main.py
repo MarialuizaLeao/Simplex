@@ -86,7 +86,7 @@ def simplex(restrictions, bVector, optimalVector, baseVariables, vero):
     tableau.dimensions = (restrictions.shape[0], restrictions.shape[1])
     tableau.optimalValue = 0
     tableau.certificate = np.zeros(tableau.dimensions[0])
-    tableau.vero = vero
+    tableau.vero = vero.copy()
     tableau.canonizeTableau()  # Make sure that all the bases columns really have pivots
     while(np.any(tableau.c < 0)):  # While c still have negative values
         pivotColumn, pivotLine, ilimitada = tableau.findPivot()  # Find the variable that will enter the base
